@@ -1,203 +1,131 @@
-import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export interface Task {
-  id: string;
+  id: number;
   title: string;
-  description: string;
-  status: 'todo' | 'in-progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  dueDate: string;
-  assigneeId: string;
-  assigneeName: string;
-  createdById: string;
-  createdByName: string;
+  description: string | null;
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  dueDate: string | null;
+  creatorId: number;
+  assigneeId: number | null;
   createdAt: string;
   updatedAt: string;
+  creator: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  assignee: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
+export interface CreateTaskInput {
+  title: string;
+  description?: string;
+  status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  dueDate?: string;
+  assigneeId?: number;
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  dueDate?: string | null;
+  assigneeId?: number | null;
+}
+
+export interface TaskFilters {
+  status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  creatorId?: number;
+  assigneeId?: number;
+  sortBy?: 'dueDate' | 'priority' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
 }
 
-// Mock data
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Implement Login Page',
-    description: 'Create a responsive login page with form validation',
-    status: 'in-progress',
-    priority: 'high',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(),
-    assigneeId: '1',
-    assigneeName: 'John Doe',
-    createdById: '2',
-    createdByName: 'Jane Smith',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Design System Setup',
-    description: 'Set up Tailwind CSS design system with custom colors and components',
-    status: 'completed',
-    priority: 'medium',
-    dueDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    assigneeId: '1',
-    assigneeName: 'John Doe',
-    createdById: '1',
-    createdByName: 'John Doe',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-  },
-  {
-    id: '3',
-    title: 'API Integration',
-    description: 'Integrate REST API endpoints for task management',
-    status: 'todo',
-    priority: 'high',
-    dueDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-    assigneeId: '1',
-    assigneeName: 'John Doe',
-    createdById: '2',
-    createdByName: 'Jane Smith',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
-  },
-  {
-    id: '4',
-    title: 'Database Schema Design',
-    description: 'Design and implement PostgreSQL database schema',
-    status: 'in-progress',
-    priority: 'high',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
-    assigneeId: '2',
-    assigneeName: 'Jane Smith',
-    createdById: '1',
-    createdByName: 'John Doe',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-  },
-  {
-    id: '5',
-    title: 'User Authentication',
-    description: 'Implement JWT-based authentication system',
-    status: 'todo',
-    priority: 'high',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
-    assigneeId: '3',
-    assigneeName: 'Bob Johnson',
-    createdById: '1',
-    createdByName: 'John Doe',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
-  },
-  {
-    id: '6',
-    title: 'Task Dashboard',
-    description: 'Create comprehensive task dashboard with filters and sorting',
-    status: 'in-progress',
-    priority: 'medium',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10).toISOString(),
-    assigneeId: '1',
-    assigneeName: 'John Doe',
-    createdById: '2',
-    createdByName: 'Jane Smith',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-  },
-  {
-    id: '7',
-    title: 'Write Unit Tests',
-    description: 'Write comprehensive unit tests for all components',
-    status: 'todo',
-    priority: 'low',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString(),
-    assigneeId: '2',
-    assigneeName: 'Jane Smith',
-    createdById: '1',
-    createdByName: 'John Doe',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-  },
-];
-
-const mockUsers: User[] = [
-  { id: '1', name: 'John Doe', email: 'john.doe@example.com' },
-  { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com' },
-  { id: '3', name: 'Bob Johnson', email: 'bob.johnson@example.com' },
-];
-
 export const tasksApi = createApi({
   reducerPath: 'tasksApi',
-  baseQuery: fakeBaseQuery(),
-  tagTypes: ['Task'],
+  baseQuery: fetchBaseQuery({
+    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    credentials: 'include',
+  }),
+  tagTypes: ['Task', 'User'],
   endpoints: (builder) => ({
-    getTasks: builder.query<Task[], void>({
-      queryFn: () => {
-        return { data: mockTasks };
-      },
-      providesTags: ['Task'],
+    getUsers: builder.query<{ success: boolean; data: User[]; count: number }, void>({
+      query: () => '/api/v1/users',
+      providesTags: ['User'],
     }),
-    getTask: builder.query<Task, string>({
-      queryFn: (id) => {
-        const task = mockTasks.find((t) => t.id === id);
-        return task ? { data: task } : { error: { status: 404, data: 'Not found' } };
-      },
-      providesTags: ['Task'],
-    }),
-    getUsers: builder.query<User[], void>({
-      queryFn: () => {
-        return { data: mockUsers };
-      },
-    }),
-    createTask: builder.mutation<Task, Partial<Task>>({
-      queryFn: (newTask) => {
-        const task: Task = {
-          id: String(mockTasks.length + 1),
-          title: newTask.title || '',
-          description: newTask.description || '',
-          status: newTask.status || 'todo',
-          priority: newTask.priority || 'medium',
-          dueDate: newTask.dueDate || new Date().toISOString(),
-          assigneeId: newTask.assigneeId || '1',
-          assigneeName: newTask.assigneeName || 'John Doe',
-          createdById: '1',
-          createdByName: 'John Doe',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        mockTasks.push(task);
-        return { data: task };
-      },
-      invalidatesTags: ['Task'],
-    }),
-    updateTask: builder.mutation<Task, { id: string; updates: Partial<Task> }>({
-      queryFn: ({ id, updates }) => {
-        const taskIndex = mockTasks.findIndex((t) => t.id === id);
-        if (taskIndex === -1) {
-          return { error: { status: 404, data: 'Not found' } };
+    getTasks: builder.query<{ success: boolean; data: Task[]; count: number }, TaskFilters | void>({
+      query: (filters) => {
+        const params = new URLSearchParams();
+        if (filters) {
+          Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined) {
+              params.append(key, String(value));
+            }
+          });
         }
-        mockTasks[taskIndex] = {
-          ...mockTasks[taskIndex],
-          ...updates,
-          updatedAt: new Date().toISOString(),
+        return {
+          url: `/api/v1/tasks?${params.toString()}`,
         };
-        return { data: mockTasks[taskIndex] };
       },
-      invalidatesTags: ['Task'],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({ type: 'Task' as const, id })),
+              { type: 'Task', id: 'LIST' },
+            ]
+          : [{ type: 'Task', id: 'LIST' }],
     }),
-    deleteTask: builder.mutation<void, string>({
-      queryFn: (id) => {
-        const taskIndex = mockTasks.findIndex((t) => t.id === id);
-        if (taskIndex === -1) {
-          return { error: { status: 404, data: 'Not found' } };
-        }
-        mockTasks.splice(taskIndex, 1);
-        return { data: undefined };
-      },
-      invalidatesTags: ['Task'],
+
+    getTask: builder.query<{ success: boolean; data: Task }, number>({
+      query: (id) => `/api/v1/tasks/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Task', id }],
+    }),
+
+    createTask: builder.mutation<{ success: boolean; message: string; data: Task }, CreateTaskInput>({
+      query: (body) => ({
+        url: '/api/v1/tasks',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+    }),
+
+    updateTask: builder.mutation<
+      { success: boolean; message: string; data: Task },
+      { id: number; updates: UpdateTaskInput }
+    >({
+      query: ({ id, updates }) => ({
+        url: `/api/v1/tasks/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Task', id },
+        { type: 'Task', id: 'LIST' },
+      ],
+    }),
+
+    deleteTask: builder.mutation<{ success: boolean; message: string }, number>({
+      query: (id) => ({
+        url: `/api/v1/tasks/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
     }),
   }),
 });

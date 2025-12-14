@@ -1,38 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import {
-  toggleNotifications,
-  closeNotifications,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-} from '../store/slices/uiSlice';
 import { useLogoutMutation } from '../store/slices/authApi';
 import { clearUser } from '../store/slices/authSlice';
+import { NotificationBell } from './NotificationBell';
 
 export const Navbar: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { notifications, isNotificationOpen, currentUser } = useAppSelector((state) => state.ui);
   const authUser = useAppSelector((state) => state.auth.user);
   const [logout] = useLogoutMutation();
-  const notificationRef = useRef<HTMLDivElement>(null);
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
   
-  // Use authenticated user data if available, fallback to mock data
-  const displayUser = authUser || currentUser;
+  // Use authenticated user data
+  const displayUser = authUser;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        notificationRef.current &&
-        !notificationRef.current.contains(event.target as Node)
-      ) {
-        dispatch(closeNotifications());
-      }
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
       }
@@ -40,29 +25,7 @@ export const Navbar: React.FC = () => {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dispatch]);
-
-  const formatTimestamp = (timestamp: string) => {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diffMs = now.getTime() - time.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
-
-  const handleNotificationClick = (notificationId: string, taskId?: string) => {
-    dispatch(markNotificationAsRead(notificationId));
-    if (taskId) {
-      navigate(`/tasks/${taskId}`);
-      dispatch(closeNotifications());
-    }
-  };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -107,103 +70,7 @@ export const Navbar: React.FC = () => {
 
           <div className="flex items-center space-x-4">
             {/* Notification Bell */}
-            <div className="relative" ref={notificationRef}>
-              <button
-                onClick={() => dispatch(toggleNotifications())}
-                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Dropdown */}
-              {isNotificationOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 py-2 max-h-[32rem] overflow-y-auto">
-                  <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={() => dispatch(markAllNotificationsAsRead())}
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-
-                  {notifications.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-gray-500">
-                      <svg
-                        className="w-12 h-12 mx-auto mb-3 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                        />
-                      </svg>
-                      <p className="text-sm">No notifications</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {notifications.map((notification) => (
-                        <button
-                          key={notification.id}
-                          onClick={() =>
-                            handleNotificationClick(notification.id, notification.taskId)
-                          }
-                          className={`w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left ${
-                            !notification.read ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          <div className="flex items-start space-x-3">
-                            <div
-                              className={`flex-shrink-0 w-2 h-2 mt-2 rounded-full ${
-                                notification.read ? 'bg-gray-300' : 'bg-blue-500'
-                              }`}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-sm ${
-                                  notification.read
-                                    ? 'text-gray-600'
-                                    : 'text-gray-900 font-medium'
-                                }`}
-                              >
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatTimestamp(notification.timestamp)}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <NotificationBell />
 
             {/* Profile Menu */}
             <div className="relative" ref={profileRef}>

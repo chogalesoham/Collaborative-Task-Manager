@@ -83,6 +83,24 @@ export class UserRepository {
       where: { id },
     });
   }
+
+  /**
+   * Find all users (for assignee dropdown)
+   */
+  async findAll(): Promise<UserResponse[]> {
+    return await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
 }
 
 export const userRepository = new UserRepository();

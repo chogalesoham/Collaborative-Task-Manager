@@ -2,15 +2,21 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import { createServer } from 'http';
 import prisma from './lib/prisma.js';
 import routes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './middleware/logger.js';
+import { initializeSocket } from './lib/socket.js';
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Initialize Socket.io
+initializeSocket(server);
 
 // Middleware
 app.use(cors({
@@ -32,8 +38,9 @@ app.use('/', routes);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`✅ Socket.io initialized`);
   console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   
   try {
@@ -49,7 +56,10 @@ app.listen(PORT, async () => {
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
   await prisma.$disconnect();
-  process.exit(0);
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
 });
 
 export default app;

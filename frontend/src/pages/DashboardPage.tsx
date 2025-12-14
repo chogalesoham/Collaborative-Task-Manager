@@ -5,21 +5,24 @@ import { useAppSelector } from '../store/hooks';
 import type { Task } from '../store/slices/tasksApi';
 
 const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
-  const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED';
 
-  const statusColors = {
-    todo: 'bg-gray-100 text-gray-700',
-    'in-progress': 'bg-blue-100 text-blue-700',
-    completed: 'bg-green-100 text-green-700',
+  const statusConfig = {
+    TODO: { label: 'To Do', color: 'bg-gray-100 text-gray-700' },
+    IN_PROGRESS: { label: 'In Progress', color: 'bg-blue-100 text-blue-700' },
+    REVIEW: { label: 'Review', color: 'bg-purple-100 text-purple-700' },
+    COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-700' },
   };
 
-  const priorityColors = {
-    low: 'bg-green-100 text-green-700',
-    medium: 'bg-yellow-100 text-yellow-700',
-    high: 'bg-red-100 text-red-700',
+  const priorityConfig = {
+    LOW: { label: 'Low', color: 'bg-green-100 text-green-700' },
+    MEDIUM: { label: 'Medium', color: 'bg-yellow-100 text-yellow-700' },
+    HIGH: { label: 'High', color: 'bg-orange-100 text-orange-700' },
+    URGENT: { label: 'Urgent', color: 'bg-red-100 text-red-700' },
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'No due date';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
@@ -32,29 +35,29 @@ const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
       <div className="flex items-start justify-between mb-3">
         <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">{task.title}</h3>
       </div>
-      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{task.description}</p>
+      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{task.description || 'No description'}</p>
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <span
           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-            statusColors[task.status]
+            statusConfig[task.status].color
           }`}
         >
-          {task.status.replace('-', ' ')}
+          {statusConfig[task.status].label}
         </span>
         <span
           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-            priorityColors[task.priority]
+            priorityConfig[task.priority].color
           }`}
         >
-          {task.priority}
+          {priorityConfig[task.priority].label}
         </span>
       </div>
       <div className="flex items-center justify-between text-xs">
         <span className="flex items-center text-gray-600">
           <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-medium mr-2">
-            {task.assigneeName.charAt(0)}
+            {task.assignee?.name?.charAt(0) || task.creator.name.charAt(0)}
           </div>
-          {task.assigneeName}
+          {task.assignee?.name || task.creator.name}
         </span>
         <span className={`flex items-center font-medium ${isOverdue ? 'text-red-600' : 'text-gray-600'}`}>
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,18 +116,20 @@ const EmptyState: React.FC<{ title: string; description: string }> = ({ title, d
 };
 
 export const DashboardPage: React.FC = () => {
-  const { data: tasks, isLoading } = useGetTasksQuery();
-  const currentUser = useAppSelector((state) => state.ui.currentUser);
+  const { data: tasksResponse, isLoading } = useGetTasksQuery();
+  const currentUser = useAppSelector((state) => state.auth.user);
 
-  const tasksAssignedToMe = tasks?.filter((task) => task.assigneeId === currentUser?.id) || [];
-  const tasksCreatedByMe = tasks?.filter((task) => task.createdById === currentUser?.id) || [];
+  const tasks = tasksResponse?.data || [];
+
+  const tasksAssignedToMe = tasks.filter((task) => task.assigneeId === currentUser?.id) || [];
+  const tasksCreatedByMe = tasks.filter((task) => task.creatorId === currentUser?.id) || [];
   const overdueTasks =
-    tasks?.filter(
-      (task) => new Date(task.dueDate) < new Date() && task.status !== 'completed'
+    tasks.filter(
+      (task) => task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED'
     ) || [];
 
-  const completedTasksCount = tasks?.filter((task) => task.status === 'completed').length || 0;
-  const inProgressTasksCount = tasks?.filter((task) => task.status === 'in-progress').length || 0;
+  const completedTasksCount = tasks.filter((task) => task.status === 'COMPLETED').length || 0;
+  const inProgressTasksCount = tasks.filter((task) => task.status === 'IN_PROGRESS').length || 0;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
