@@ -7,16 +7,23 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '../store/slices/uiSlice';
+import { useLogoutMutation } from '../store/slices/authApi';
+import { clearUser } from '../store/slices/authSlice';
 
 export const Navbar: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { notifications, isNotificationOpen, currentUser } = useAppSelector((state) => state.ui);
+  const authUser = useAppSelector((state) => state.auth.user);
+  const [logout] = useLogoutMutation();
   const notificationRef = useRef<HTMLDivElement>(null);
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  
+  // Use authenticated user data if available, fallback to mock data
+  const displayUser = authUser || currentUser;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -57,9 +64,18 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    navigate('/');
-    setIsProfileOpen(false);
+  const handleLogout = async () => {
+    try {
+      await logout().unwrap();
+      dispatch(clearUser());
+      setIsProfileOpen(false);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still navigate to login even if API call fails
+      dispatch(clearUser());
+      navigate('/login');
+    }
   };
 
   return (
@@ -196,10 +212,10 @@ export const Navbar: React.FC = () => {
                 className="flex items-center space-x-3 focus:outline-none"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                  {currentUser?.name.charAt(0) || 'U'}
+                  {displayUser?.name.charAt(0) || 'U'}
                 </div>
                 <span className="hidden md:block text-sm font-medium text-gray-700">
-                  {currentUser?.name}
+                  {displayUser?.name}
                 </span>
                 <svg
                   className={`w-4 h-4 text-gray-500 transition-transform ${
@@ -222,9 +238,9 @@ export const Navbar: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
                   <div className="px-4 py-3 border-b border-gray-200">
                     <p className="text-sm font-medium text-gray-900">
-                      {currentUser?.name}
+                      {displayUser?.name}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{currentUser?.email}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{displayUser?.email}</p>
                   </div>
                   <Link
                     to="/profile"

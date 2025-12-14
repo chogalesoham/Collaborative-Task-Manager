@@ -1,24 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector } from '../store/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { useUpdateProfileMutation, useLogoutMutation } from '../store/slices/authApi';
+import { setUser, clearUser } from '../store/slices/authSlice';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const currentUser = useAppSelector((state) => state.ui.currentUser);
+  const dispatch = useAppDispatch();
+  const authUser = useAppSelector((state) => state.auth.user);
+  const [updateProfile, { isLoading }] = useUpdateProfileMutation();
+  const [logout] = useLogoutMutation();
+  
   const [isEditing, setIsEditing] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
   const [formData, setFormData] = useState({
-    name: currentUser?.name || '',
-    email: currentUser?.email || '',
+    name: authUser?.name || '',
+    email: authUser?.email || '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  useEffect(() => {
+    if (authUser) {
+      setFormData({
+        name: authUser.name,
+        email: authUser.email,
+      });
+    }
+  }, [authUser]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would update the user profile
-    setIsEditing(false);
+    setError('');
+    setSuccess('');
+
+    try {
+      const updateData: any = {};
+      
+      if (formData.name !== authUser?.name) updateData.name = formData.name;
+      if (formData.email !== authUser?.email) updateData.email = formData.email;
+
+      if (isChangingPassword) {
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          setError('New passwords do not match');
+          return;
+        }
+        updateData.currentPassword = passwordData.currentPassword;
+        updateData.newPassword = passwordData.newPassword;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        setError('No changes to save');
+        return;
+      }
+
+      const result = await updateProfile(updateData).unwrap();
+      
+      dispatch(setUser(result.user));
+      setSuccess('Profile updated successfully!');
+      setIsEditing(false);
+      setIsChangingPassword(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      console.error('Update error:', err);
+      setError(err?.data?.message || 'Failed to update profile');
+    }
   };
 
-  const handleLogout = () => {
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logout().unwrap();
+      dispatch(clearUser());
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      dispatch(clearUser());
+      navigate('/login');
+    }
   };
 
   return (
@@ -38,13 +103,25 @@ export const ProfilePage: React.FC = () => {
         <div className="px-8 pb-8">
           <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-6 -mt-16 mb-6">
             <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-5xl border-4 border-white shadow-lg">
-              {currentUser?.name.charAt(0)}
+              {authUser?.name.charAt(0)}
             </div>
             <div className="mt-4 sm:mt-0 sm:mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">{currentUser?.name}</h2>
-              <p className="text-gray-600">{currentUser?.email}</p>
+              <h2 className="text-2xl font-bold text-gray-900">{authUser?.name}</h2>
+              <p className="text-gray-600">{authUser?.email}</p>
             </div>
           </div>
+
+          {/* Success/Error Messages */}
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">{success}</p>
+            </div>
+          )}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
 
           {/* Profile Form */}
           {isEditing ? (
@@ -60,6 +137,7 @@ export const ProfilePage: React.FC = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
                   />
                 </div>
                 <div>
@@ -72,22 +150,106 @@ export const ProfilePage: React.FC = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
                   />
                 </div>
               </div>
+
+              {/* Password Change Section */}
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Change Password</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsChangingPassword(!isChangingPassword);
+                      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    {isChangingPassword ? 'Cancel' : 'Change Password'}
+                  </button>
+                </div>
+
+                {isChangingPassword && (
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required={isChangingPassword}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required={isChangingPassword}
+                        minLength={6}
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Must be at least 6 characters</p>
+                    </div>
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required={isChangingPassword}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => {
+                    setIsEditing(false);
+                    setIsChangingPassword(false);
+                    setError('');
+                    setSuccess('');
+                    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    setFormData({ name: authUser?.name || '', email: authUser?.email || '' });
+                  }}
                   className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  disabled={isLoading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  disabled={isLoading}
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Save Changes
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving...
+                    </div>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </button>
               </div>
             </form>
@@ -96,16 +258,40 @@ export const ProfilePage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Full Name</h3>
-                  <p className="text-base text-gray-900">{currentUser?.name}</p>
+                  <p className="text-base text-gray-900">{authUser?.name}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Email Address</h3>
-                  <p className="text-base text-gray-900">{currentUser?.email}</p>
+                  <p className="text-base text-gray-900">{authUser?.email}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Member Since</h3>
+                  <p className="text-base text-gray-900">
+                    {authUser?.createdAt ? new Date(authUser.createdAt).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    }) : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Last Updated</h3>
+                  <p className="text-base text-gray-900">
+                    {authUser?.updatedAt ? new Date(authUser.updatedAt).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    }) : 'N/A'}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center justify-end pt-6 border-t border-gray-200">
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setIsEditing(true);
+                    setError('');
+                    setSuccess('');
+                  }}
                   className="inline-flex items-center px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
                   <svg
