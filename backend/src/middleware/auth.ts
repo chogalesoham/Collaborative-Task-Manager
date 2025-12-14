@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { authService } from '../modules/auth/auth.service.js';
+import { authService } from '../services/auth.service.js';
+import { AppError } from './errorHandler.js';
 
 // Extend Express Request type to include userId
 declare global {
@@ -10,6 +11,10 @@ declare global {
   }
 }
 
+/**
+ * Authentication middleware
+ * Verifies JWT token from cookies and attaches userId to request
+ */
 export const authMiddleware = async (
   req: Request,
   res: Response,
@@ -20,11 +25,7 @@ export const authMiddleware = async (
     const token = req.cookies?.token;
 
     if (!token) {
-      res.status(401).json({
-        success: false,
-        message: 'No token provided. Please login.',
-      });
-      return;
+      throw new AppError('No token provided. Please login.', 401);
     }
 
     // Verify token
@@ -35,9 +36,30 @@ export const authMiddleware = async (
 
     next();
   } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: 'Invalid or expired token. Please login again.',
-    });
+    next(error);
+  }
+};
+
+/**
+ * Optional authentication middleware
+ * Attaches userId to request if token exists, but doesn't throw error
+ */
+export const optionalAuthMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const token = req.cookies?.token;
+
+    if (token) {
+      const decoded = authService.verifyToken(token);
+      req.userId = decoded.userId;
+    }
+
+    next();
+  } catch (error) {
+    // Continue without authentication
+    next();
   }
 };
