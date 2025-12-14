@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppSelector } from '../store/hooks';
 import {
   useGetNotificationsQuery,
   useGetUnreadCountQuery,
@@ -13,12 +14,18 @@ export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  const { data: notificationsData, refetch } = useGetNotificationsQuery(undefined, {
+  // Skip queries if not authenticated
+  const { data: notificationsData, refetch, isLoading } = useGetNotificationsQuery(undefined, {
     pollingInterval: 30000, // Poll every 30 seconds as fallback
+    refetchOnMountOrArgChange: true,
+    skip: !isAuthenticated, // Skip if not authenticated
   });
   const { data: unreadData, refetch: refetchCount } = useGetUnreadCountQuery(undefined, {
     pollingInterval: 30000, // Poll every 30 seconds as fallback
+    refetchOnMountOrArgChange: true,
+    skip: !isAuthenticated, // Skip if not authenticated
   });
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead] = useMarkAllAsReadMutation();
@@ -98,6 +105,7 @@ export const NotificationBell = () => {
         className="notification-bell-button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Notifications"
+        disabled={isLoading}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

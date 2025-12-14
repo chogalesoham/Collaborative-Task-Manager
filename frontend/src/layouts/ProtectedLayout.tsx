@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { Navbar } from '../components/Navbar';
 import { ProtectedRoute } from '../components/ProtectedRoute';
+
 import { initializeSocket, getSocket, disconnectSocket } from '../lib/socket';
 import { tasksApi } from '../store/slices/tasksApi';
 import { notificationsApi } from '../store/slices/notificationsApi';
@@ -10,89 +11,151 @@ import { useAppDispatch } from '../store/hooks';
 
 export const ProtectedLayout: React.FC = () => {
   const dispatch = useAppDispatch();
+  const [showPermissionPrompt, setShowPermissionPrompt] = React.useState(false);
+
+  // Check notification permission on mount
+  React.useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      const timer = setTimeout(() => setShowPermissionPrompt(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        setShowPermissionPrompt(false);
+        
+        try {
+          const testNotification = new Notification('✅ Notifications Enabled!', {
+            body: 'You will now receive real-time task notifications with sound.',
+            icon: '/vite.svg',
+            badge: '/vite.svg',
+          });
+          setTimeout(() => testNotification.close(), 3000);
+        } catch (err) {
+          // Silent fail
+        }
+      } else {
+        setShowPermissionPrompt(false);
+      }
+    } catch (error) {
+      setShowPermissionPrompt(false);
+    }
+  };
+
+  // Function to play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('/sound.wav');
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+    } catch (error) {
+      // Silent fail
+    }
+  };
+
+  // Function to show browser notification
+  const showBrowserNotification = (title: string, body: string) => {
+    playNotificationSound();
+    
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission === 'granted') {
+      try {
+        const notification = new Notification(title, {
+          body,
+          icon: '/vite.svg',
+          badge: '/vite.svg',
+          requireInteraction: false,
+          silent: false,
+        });
+        
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+        
+        setTimeout(() => notification.close(), 8000);
+      } catch (error) {
+        // Silent fail
+      }
+    } else if (Notification.permission === 'default') {
+      setShowPermissionPrompt(true);
+    }
+  };
 
   useEffect(() => {
     const token = Cookies.get('token');
     
     if (token) {
-      // Initialize Socket.io
       const socket = initializeSocket(token);
 
-      // Listen for real-time task events
       socket.on('task:created', (data: any) => {
-        console.log('📥 Received task:created', data);
         dispatch(tasksApi.util.invalidateTags(['Task']));
       });
 
       socket.on('task:updated', (data: any) => {
-        console.log('📥 Received task:updated', data);
         dispatch(tasksApi.util.invalidateTags(['Task']));
       });
 
       socket.on('task:deleted', (data: any) => {
-        console.log('📥 Received task:deleted', data);
         dispatch(tasksApi.util.invalidateTags(['Task']));
       });
 
       socket.on('task:assigned', (data: any) => {
-        console.log('📥 Received task:assigned', data);
-        // Refresh both tasks and notifications
         dispatch(tasksApi.util.invalidateTags(['Task']));
         dispatch(notificationsApi.util.invalidateTags(['Notification']));
         
-        // Show browser notification
-        if (Notification.permission === 'granted') {
-          new Notification('New Task Assigned', {
-            body: data.task?.title ? `You've been assigned: ${data.task.title}` : 'New task assigned to you',
-            icon: '/vite.svg',
-          });
-        }
+        const taskTitle = data.task?.title || data.taskTitle || 'New task';
+        showBrowserNotification(
+          '📋 New Task Assigned',
+          `You have been assigned: ${taskTitle}`
+        );
       });
 
       socket.on('task:reassigned', (data: any) => {
-        console.log('📥 Received task:reassigned', data);
-        // Refresh both tasks and notifications
         dispatch(tasksApi.util.invalidateTags(['Task']));
         dispatch(notificationsApi.util.invalidateTags(['Notification']));
         
-        // Show browser notification
-        if (Notification.permission === 'granted' && data.newAssigneeId) {
-          new Notification('Task Reassigned', {
-            body: data.task?.title ? `You've been assigned: ${data.task.title}` : 'Task reassigned to you',
-            icon: '/vite.svg',
-          });
-        }
+        const taskTitle = data.task?.title || data.taskTitle || 'Task';
+        showBrowserNotification(
+          '🔄 Task Reassigned',
+          `You have been assigned: ${taskTitle}`
+        );
       });
 
       socket.on('task:unassigned', (data: any) => {
-        console.log('📥 Received task:unassigned', data);
         dispatch(tasksApi.util.invalidateTags(['Task']));
         dispatch(notificationsApi.util.invalidateTags(['Notification']));
       });
 
-      // Listen for new notifications
       socket.on('notification:new', (notification: any) => {
-        console.log('📥 Received notification:new', notification);
-        // Refresh notifications in UI
         dispatch(notificationsApi.util.invalidateTags(['Notification']));
-        
-        // Play notification sound or show toast
-        if (Notification.permission === 'granted') {
-          new Notification('New Notification', {
-            body: notification.message,
-            icon: '/vite.svg',
-          });
-        }
+        showBrowserNotification(
+          '🔔 New Notification',
+          notification.message || 'You have a new notification'
+        );
       });
 
-      // Request notification permission
-      if (Notification.permission === 'default') {
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
 
-      // Cleanup on unmount
       return () => {
-        disconnectSocket();
+        socket.off('task:created');
+        socket.off('task:updated');
+        socket.off('task:deleted');
+        socket.off('task:assigned');
+        socket.off('task:reassigned');
+        socket.off('task:unassigned');
+        socket.off('notification:new');
       };
     }
   }, [dispatch]);
@@ -104,6 +167,44 @@ export const ProtectedLayout: React.FC = () => {
         <main>
           <Outlet />
         </main>
+        
+        {/* Notification Permission Prompt - ENHANCED */}
+        {showPermissionPrompt && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-2xl p-8 max-w-md w-full animate-pulse">
+              <div className="text-center">
+                <div className="mb-4">
+                  <span className="text-7xl">🔔</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-3">
+                  Enable Desktop Notifications
+                </h2>
+                <p className="text-blue-100 mb-6 text-base">
+                  Get instant alerts with sound when you're assigned new tasks. 
+                  Never miss an important update!
+                </p>
+                <div className="space-y-3">
+                  <button
+                    onClick={requestNotificationPermission}
+                    className="w-full bg-white text-blue-600 text-base font-bold px-6 py-4 rounded-xl hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg"
+                  >
+                    ✅ Yes, Enable Notifications
+                  </button>
+                  <button
+                    onClick={() => setShowPermissionPrompt(false)}
+                    className="w-full bg-blue-700 bg-opacity-50 text-white text-sm font-medium px-6 py-3 rounded-xl hover:bg-opacity-70 transition-colors"
+                  >
+                    Maybe Later
+                  </button>
+                </div>
+                <p className="text-blue-200 text-xs mt-4">
+                  🔊 Sound notifications will work even if you skip this
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </ProtectedRoute>
   );

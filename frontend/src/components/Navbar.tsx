@@ -69,8 +69,8 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Notification Bell */}
-            <NotificationBell />
+            {/* Notification Bell - only show when authenticated */}
+            {authUser && <NotificationBell />}
 
             {/* Profile Menu */}
             <div className="relative" ref={profileRef}>

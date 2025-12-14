@@ -39,7 +39,7 @@ export const notificationsApi = createApi({
         url: `/api/v1/notifications/${id}/read`,
         method: 'PATCH',
       }),
-      invalidatesTags: (result, error, id) => [
+      invalidatesTags: (_result, _error, id) => [
         { type: 'Notification', id },
         { type: 'Notification', id: 'LIST' },
         { type: 'Notification', id: 'COUNT' },

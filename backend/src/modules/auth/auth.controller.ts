@@ -35,7 +35,7 @@ export class AuthController {
         res.status(400).json({
           success: false,
           message: 'Validation error',
-          errors: error.errors.map((e) => ({
+          errors: error.issues.map((e: z.ZodIssue) => ({
             field: e.path.join('.'),
             message: e.message,
           })),
@@ -85,7 +85,7 @@ export class AuthController {
         res.status(400).json({
           success: false,
           message: 'Validation error',
-          errors: error.errors.map((e) => ({
+          errors: error.issues.map((e: z.ZodIssue) => ({
             field: e.path.join('.'),
             message: e.message,
           })),
@@ -145,7 +145,7 @@ export class AuthController {
   }
 
   // POST /api/v1/auth/logout
-  async logout(req: Request, res: Response): Promise<void> {
+  async logout(_req: Request, res: Response): Promise<void> {
     try {
       // Clear the token cookie
       res.clearCookie('token', {
@@ -195,7 +195,7 @@ export class AuthController {
         res.status(400).json({
           success: false,
           message: 'Validation error',
-          errors: error.errors.map((e) => ({
+          errors: error.issues.map((e: z.ZodIssue) => ({
             field: e.path.join('.'),
             message: e.message,
           })),

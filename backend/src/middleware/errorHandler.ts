@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
+import { ZodError, ZodIssue } from 'zod';
 
 export class AppError extends Error {
   statusCode: number;
@@ -15,10 +15,10 @@ export class AppError extends Error {
 
 export const errorHandler = (
   err: Error | AppError | ZodError,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
-) => {
+  _next: NextFunction
+): void => {
   // Log error for debugging
   console.error('Error:', {
     name: err.name,
@@ -28,22 +28,24 @@ export const errorHandler = (
 
   // Handle Zod validation errors
   if (err instanceof ZodError) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'Validation error',
-      errors: err.errors.map((e) => ({
+      errors: err.issues.map((e: ZodIssue) => ({
         field: e.path.join('.'),
         message: e.message,
       })),
     });
+    return;
   }
 
   // Handle custom AppError
   if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       success: false,
       message: err.message,
     });
+    return;
   }
 
   // Handle default errors

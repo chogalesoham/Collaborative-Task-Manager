@@ -96,7 +96,7 @@ export class AuthController {
    * POST /api/v1/auth/logout
    * Logout user
    */
-  logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  logout = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Clear the token cookie
       res.clearCookie('token', {

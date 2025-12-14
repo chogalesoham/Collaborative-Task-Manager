@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useGetTasksQuery } from '../store/slices/tasksApi';
-import { useAppSelector } from '../store/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { tasksApi } from '../store/slices/tasksApi';
+import { getSocket } from '../lib/socket';
 import type { Task } from '../store/slices/tasksApi';
 
 const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
@@ -116,20 +118,82 @@ const EmptyState: React.FC<{ title: string; description: string }> = ({ title, d
 };
 
 export const DashboardPage: React.FC = () => {
-  const { data: tasksResponse, isLoading } = useGetTasksQuery();
+  const dispatch = useAppDispatch();
+  const { data: tasksResponse, isLoading, refetch } = useGetTasksQuery(undefined, {
+    pollingInterval: 30000, // Poll every 30 seconds as fallback
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
   const currentUser = useAppSelector((state) => state.auth.user);
+
+  // Set up real-time updates
+  useEffect(() => {
+    const socket = getSocket();
+    
+    if (!socket) return;
+
+    const handleTaskUpdate = () => {
+      dispatch(tasksApi.util.invalidateTags(['Task']));
+      refetch();
+    };
+
+    socket.on('task:created', handleTaskUpdate);
+    socket.on('task:updated', handleTaskUpdate);
+    socket.on('task:deleted', handleTaskUpdate);
+    socket.on('task:assigned', handleTaskUpdate);
+    socket.on('task:reassigned', handleTaskUpdate);
+    socket.on('task:unassigned', handleTaskUpdate);
+
+    return () => {
+      socket.off('task:created', handleTaskUpdate);
+      socket.off('task:updated', handleTaskUpdate);
+      socket.off('task:deleted', handleTaskUpdate);
+      socket.off('task:assigned', handleTaskUpdate);
+      socket.off('task:reassigned', handleTaskUpdate);
+      socket.off('task:unassigned', handleTaskUpdate);
+    };
+  }, [dispatch, refetch]);
 
   const tasks = tasksResponse?.data || [];
 
-  const tasksAssignedToMe = tasks.filter((task) => task.assigneeId === currentUser?.id) || [];
-  const tasksCreatedByMe = tasks.filter((task) => task.creatorId === currentUser?.id) || [];
-  const overdueTasks =
-    tasks.filter(
-      (task) => task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED'
-    ) || [];
+  const [isRealTimeUpdate, setIsRealTimeUpdate] = React.useState(false);
 
-  const completedTasksCount = tasks.filter((task) => task.status === 'COMPLETED').length || 0;
-  const inProgressTasksCount = tasks.filter((task) => task.status === 'IN_PROGRESS').length || 0;
+  // Trigger visual feedback on data updates
+  useEffect(() => {
+    if (!isLoading && tasks.length > 0) {
+      setIsRealTimeUpdate(true);
+      const timer = setTimeout(() => setIsRealTimeUpdate(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [tasks, isLoading]);
+
+  // Dynamic calculations based on current data
+  const tasksAssignedToMe = React.useMemo(
+    () => tasks.filter((task) => task.assigneeId === currentUser?.id),
+    [tasks, currentUser?.id]
+  );
+  
+  const tasksCreatedByMe = React.useMemo(
+    () => tasks.filter((task) => task.creatorId === currentUser?.id),
+    [tasks, currentUser?.id]
+  );
+  
+  const overdueTasks = React.useMemo(
+    () => tasks.filter(
+      (task) => task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED'
+    ),
+    [tasks]
+  );
+
+  const completedTasksCount = React.useMemo(
+    () => tasks.filter((task) => task.status === 'COMPLETED').length,
+    [tasks]
+  );
+  
+  const inProgressTasksCount = React.useMemo(
+    () => tasks.filter((task) => task.status === 'IN_PROGRESS').length,
+    [tasks]
+  );
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -145,7 +209,13 @@ export const DashboardPage: React.FC = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{getGreeting()}, {currentUser?.name}! 👋</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">{getGreeting()}, {currentUser?.name}! 👋</h1>
+                <div className="flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full">
+                  <span className={`w-2 h-2 rounded-full ${isRealTimeUpdate ? 'bg-green-500 animate-ping' : 'bg-green-500'}`}></span>
+                  <span className="text-xs font-medium text-green-700">Live</span>
+                </div>
+              </div>
               <p className="text-gray-600">Here's an overview of your tasks and productivity</p>
             </div>
             <Link
@@ -162,7 +232,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-md hover:shadow-xl transition-all border border-blue-100 group">
+          <div className={`bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-md hover:shadow-xl border border-blue-100 group transition-all ${isRealTimeUpdate ? 'ring-2 ring-blue-300 ring-opacity-50' : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,7 +240,7 @@ export const DashboardPage: React.FC = () => {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900 mb-2">{tasksAssignedToMe.length}</p>
+            <p className={`text-3xl font-bold text-gray-900 mb-2 transition-all ${isRealTimeUpdate ? 'scale-110' : 'scale-100'}`}>{tasksAssignedToMe.length}</p>
             <p className="text-sm font-medium text-gray-600">Assigned to me</p>
             <div className="mt-4 pt-4 border-t border-blue-100">
               <Link to="/tasks" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center">
@@ -182,7 +252,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-white to-amber-50 rounded-2xl p-6 shadow-md hover:shadow-xl transition-all border border-amber-100 group">
+          <div className={`bg-gradient-to-br from-white to-amber-50 rounded-2xl p-6 shadow-md hover:shadow-xl border border-amber-100 group transition-all ${isRealTimeUpdate ? 'ring-2 ring-amber-300 ring-opacity-50' : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,14 +260,14 @@ export const DashboardPage: React.FC = () => {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900 mb-2">{inProgressTasksCount}</p>
+            <p className={`text-3xl font-bold text-gray-900 mb-2 transition-all ${isRealTimeUpdate ? 'scale-110' : 'scale-100'}`}>{inProgressTasksCount}</p>
             <p className="text-sm font-medium text-gray-600">In progress</p>
             <div className="mt-4 pt-4 border-t border-amber-100">
               <span className="text-xs font-semibold text-amber-600">Keep going! 💪</span>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-white to-green-50 rounded-2xl p-6 shadow-md hover:shadow-xl transition-all border border-green-100 group">
+          <div className={`bg-gradient-to-br from-white to-green-50 rounded-2xl p-6 shadow-md hover:shadow-xl border border-green-100 group transition-all ${isRealTimeUpdate ? 'ring-2 ring-green-300 ring-opacity-50' : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,14 +275,14 @@ export const DashboardPage: React.FC = () => {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900 mb-2">{completedTasksCount}</p>
+            <p className={`text-3xl font-bold text-gray-900 mb-2 transition-all ${isRealTimeUpdate ? 'scale-110' : 'scale-100'}`}>{completedTasksCount}</p>
             <p className="text-sm font-medium text-gray-600">Completed</p>
             <div className="mt-4 pt-4 border-t border-green-100">
               <span className="text-xs font-semibold text-green-600">Great job! 🎉</span>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-white to-red-50 rounded-2xl p-6 shadow-md hover:shadow-xl transition-all border border-red-100 group">
+          <div className={`bg-gradient-to-br from-white to-red-50 rounded-2xl p-6 shadow-md hover:shadow-xl border border-red-100 group transition-all ${isRealTimeUpdate ? 'ring-2 ring-red-300 ring-opacity-50' : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +290,7 @@ export const DashboardPage: React.FC = () => {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900 mb-2">{overdueTasks.length}</p>
+            <p className={`text-3xl font-bold text-gray-900 mb-2 transition-all ${isRealTimeUpdate ? 'scale-110' : 'scale-100'}`}>{overdueTasks.length}</p>
             <p className="text-sm font-medium text-gray-600">Overdue</p>
             <div className="mt-4 pt-4 border-t border-red-100">
               {overdueTasks.length > 0 ? (

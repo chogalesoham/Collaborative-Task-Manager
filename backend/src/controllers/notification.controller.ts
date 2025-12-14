@@ -1,14 +1,10 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { notificationRepository } from '../repositories/notification.repository.js';
 
+// AuthRequest extends Express Request which has userId from middleware
 interface AuthRequest extends Request {
-  user?: {
-    userId: number;
-    email: string;
-  };
+  userId?: number;
 }
-
-import { Request } from 'express';
 
 export class NotificationController {
   /**
@@ -20,7 +16,7 @@ export class NotificationController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.userId;
       if (!userId) {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
@@ -47,7 +43,7 @@ export class NotificationController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.userId;
       if (!userId) {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
@@ -94,7 +90,7 @@ export class NotificationController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.userId;
       if (!userId) {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
