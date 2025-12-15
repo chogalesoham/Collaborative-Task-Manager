@@ -1,45 +1,127 @@
 # Collaborative Task Manager
 
-Full-stack collaborative task management application with React frontend and Node.js backend.
+Full-stack task management application with real-time collaboration features. Built with React, Node.js, Express, Prisma ORM, PostgreSQL, and Socket.io for live updates.
 
-## 🚀 Quick Start
+## Tech Stack
 
-### Prerequisites
+**Frontend:** React 19, TypeScript, Redux Toolkit, RTK Query, Tailwind CSS, Socket.io-client  
+**Backend:** Node.js, Express, TypeScript, Prisma ORM  
+**Database:** PostgreSQL  
+**Real-time:** Socket.io  
+**Deployment:** Docker, Docker Compose
 
-- Node.js (v18 or higher)
-- npm or yarn
-- PostgreSQL database (Neon recommended)
-- Git
+## Features
 
-### Installation
+- User authentication (register, login, JWT-based)
+- Task CRUD operations (create, read, update, delete)
+- Task assignment and status management
+- Real-time updates via Socket.io (task creation, updates, assignments)
+- Dashboard with live statistics
+- Notification system
+- Profile management
 
-1. **Clone the repository**
+## Key API Endpoints
 
-   ```bash
-   git clone <your-repo-url>
-   cd Collaborative-Task-Manager
-   ```
+```
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+GET    /api/v1/auth/profile
+PATCH  /api/v1/auth/profile
 
-2. **Setup Backend**
+GET    /api/v1/tasks
+POST   /api/v1/tasks
+GET    /api/v1/tasks/:id
+PATCH  /api/v1/tasks/:id
+DELETE /api/v1/tasks/:id
+PATCH  /api/v1/tasks/:id/assign
 
-   ```bash
-   cd backend
-   npm install
-   cp .env.example .env
-   # Edit .env and add your DATABASE_URL
-   npm run prisma:generate
-   npm run prisma:push
-   npm run dev
-   ```
+GET    /api/v1/notifications
+PATCH  /api/v1/notifications/:id/read
+```
 
-3. **Setup Frontend** (in new terminal)
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+## Environment Variables
 
-## 📁 Project Structure
+**Backend (.env)**
+
+```
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+JWT_SECRET=your-secret-key
+PORT=3000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:5173
+```
+
+**Frontend (.env)**
+
+```
+VITE_API_URL=http://localhost:3000
+```
+
+## Local Setup
+
+### Option 1: Docker (Recommended)
+
+```bash
+# Clone repository
+git clone https://github.com/chogalesoham/Collaborative-Task-Manager.git
+cd Collaborative-Task-Manager
+
+# Start all services
+docker-compose up --build -d
+
+# Run migrations (first time only)
+docker-compose exec backend npx prisma migrate dev
+
+# Access application
+# Frontend: http://localhost:5173
+# Backend: http://localhost:3000
+# Database: localhost:5432
+```
+
+### Option 2: Manual Setup
+
+**Backend:**
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+# Configure DATABASE_URL in .env
+npx prisma migrate dev
+npm run dev
+```
+
+**Frontend:**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Socket.io Usage
+
+Real-time events are emitted on task operations (`task:created`, `task:updated`, `task:deleted`, `task:assigned`) and notifications. Client connects to backend Socket.io server for live updates across dashboard, task list, and notifications.
+
+## Testing
+
+Backend includes unit tests for:
+
+- User authentication (register, login)
+- Task CRUD operations
+- Authorization and permission checks
+
+Run tests: `cd backend && npm test`
+
+## Live Deployment
+
+**Frontend:** [Deployed URL]  
+**Backend:** [API URL]  
+**GitHub:** https://github.com/chogalesoham/Collaborative-Task-Manager
+
+---
+
+## Project Structure
 
 ```
 Collaborative-Task-Manager/
