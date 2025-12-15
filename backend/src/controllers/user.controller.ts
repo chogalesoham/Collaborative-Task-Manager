@@ -6,7 +6,7 @@ export class UserController {
    * GET /api/v1/users
    * Get all users (for assignee dropdown)
    */
-  getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getAllUsers = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const users = await userRepository.findAll();
       

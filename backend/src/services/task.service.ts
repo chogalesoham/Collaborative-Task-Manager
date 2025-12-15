@@ -10,7 +10,7 @@ export class TaskService {
   /**
    * Get all tasks with filters
    */
-  async getAllTasks(filters: TaskFiltersDto, userId?: number): Promise<TaskWithRelations[]> {
+  async getAllTasks(filters: TaskFiltersDto, _userId?: number): Promise<TaskWithRelations[]> {
     return await taskRepository.findAll(
       filters as any,
       filters.sortBy || 'createdAt',
@@ -21,7 +21,7 @@ export class TaskService {
   /**
    * Get task by ID
    */
-  async getTaskById(id: number, userId?: number): Promise<TaskWithRelations> {
+  async getTaskById(id: number, _userId?: number): Promise<TaskWithRelations> {
     const task = await taskRepository.findById(id);
 
     if (!task) {

@@ -121,9 +121,9 @@ export class AuthService {
    * Generate JWT token
    */
   generateToken(userId: number): string {
-    return jwt.sign({ userId }, this.JWT_SECRET, {
-      expiresIn: this.JWT_EXPIRES_IN,
-    });
+    return jwt.sign({ userId }, this.JWT_SECRET as string, {
+      expiresIn: this.JWT_EXPIRES_IN as string,
+    } as jwt.SignOptions);
   }
 
   /**
