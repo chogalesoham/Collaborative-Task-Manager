@@ -17,11 +17,11 @@ export class AuthController {
       // Generate token
       const token = authService.generateToken(result.user.id);
 
-      // Set HTTP-only cookie
+      // Set HTTP-only cookie (for same-origin)
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -29,6 +29,7 @@ export class AuthController {
         success: true,
         message: result.message,
         user: result.user,
+        token, // Include token in response for cross-origin
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -67,11 +68,11 @@ export class AuthController {
       // Login user
       const result = await authService.login(validatedData);
 
-      // Set HTTP-only cookie
+      // Set HTTP-only cookie (for same-origin)
       res.cookie('token', result.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -79,6 +80,7 @@ export class AuthController {
         success: true,
         message: 'Login successful',
         user: result.user,
+        token: result.token, // Include token in response for cross-origin
       });
     } catch (error) {
       if (error instanceof z.ZodError) {

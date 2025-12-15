@@ -25,6 +25,7 @@ export interface AuthResponse {
   success: boolean;
   message?: string;
   user: User;
+  token?: string; // Token included for cross-origin authentication
 }
 
 export interface ErrorResponse {
