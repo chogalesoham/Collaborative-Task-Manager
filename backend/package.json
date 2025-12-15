@@ -1,15 +1,16 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Production-ready backend with Express, PostgreSQL, and Prisma",
+  "description": "Production-ready backend with Express, PostgreSQL, Prisma, and Socket.io",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:push": "prisma db push"
   },
@@ -17,7 +18,8 @@
     "express",
     "postgresql",
     "prisma",
-    "typescript"
+    "typescript",
+    "socket.io"
   ],
   "author": "",
   "license": "ISC",
