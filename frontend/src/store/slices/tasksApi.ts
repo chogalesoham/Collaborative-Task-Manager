@@ -93,7 +93,7 @@ export const tasksApi = createApi({
 
     getTask: builder.query<{ success: boolean; data: Task }, number>({
       query: (id) => `/api/v1/tasks/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Task', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Task', id }],
     }),
 
     createTask: builder.mutation<{ success: boolean; message: string; data: Task }, CreateTaskInput>({
@@ -114,7 +114,7 @@ export const tasksApi = createApi({
         method: 'PUT',
         body: updates,
       }),
-      invalidatesTags: (result, error, { id }) => [
+      invalidatesTags: (_result, _error, { id }) => [
         { type: 'Task', id },
         { type: 'Task', id: 'LIST' },
       ],

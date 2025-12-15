@@ -4,7 +4,7 @@ import Cookies from 'js-cookie';
 import { Navbar } from '../components/Navbar';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
-import { initializeSocket, getSocket, disconnectSocket } from '../lib/socket';
+import { initializeSocket } from '../lib/socket';
 import { tasksApi } from '../store/slices/tasksApi';
 import { notificationsApi } from '../store/slices/notificationsApi';
 import { useAppDispatch } from '../store/hooks';
@@ -93,15 +93,15 @@ export const ProtectedLayout: React.FC = () => {
     if (token) {
       const socket = initializeSocket(token);
 
-      socket.on('task:created', (data: any) => {
+      socket.on('task:created', () => {
         dispatch(tasksApi.util.invalidateTags(['Task']));
       });
 
-      socket.on('task:updated', (data: any) => {
+      socket.on('task:updated', () => {
         dispatch(tasksApi.util.invalidateTags(['Task']));
       });
 
-      socket.on('task:deleted', (data: any) => {
+      socket.on('task:deleted', () => {
         dispatch(tasksApi.util.invalidateTags(['Task']));
       });
 
@@ -127,7 +127,7 @@ export const ProtectedLayout: React.FC = () => {
         );
       });
 
-      socket.on('task:unassigned', (data: any) => {
+      socket.on('task:unassigned', () => {
         dispatch(tasksApi.util.invalidateTags(['Task']));
         dispatch(notificationsApi.util.invalidateTags(['Notification']));
       });

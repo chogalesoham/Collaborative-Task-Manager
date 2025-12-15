@@ -51,17 +51,17 @@ export const TaskDetailPage: React.FC = () => {
   };
 
   const statusConfig = {
-    TODO: { label: 'To Do', color: 'bg-gray-100 text-gray-700 border-gray-300' },
-    IN_PROGRESS: { label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-300' },
-    REVIEW: { label: 'Review', color: 'bg-purple-100 text-purple-700 border-purple-300' },
-    COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-700 border-green-300' },
+    TODO: { label: 'To Do', color: 'bg-gray-100 text-gray-700 border-gray-300', icon: '📋' },
+    IN_PROGRESS: { label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-300', icon: '🚀' },
+    REVIEW: { label: 'Review', color: 'bg-purple-100 text-purple-700 border-purple-300', icon: '👀' },
+    COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-700 border-green-300', icon: '✅' },
   };
 
   const priorityConfig = {
-    LOW: { label: 'Low', color: 'bg-green-100 text-green-700 border-green-300' },
-    MEDIUM: { label: 'Medium', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-    HIGH: { label: 'High', color: 'bg-orange-100 text-orange-700 border-orange-300' },
-    URGENT: { label: 'Urgent', color: 'bg-red-100 text-red-700 border-red-300' },
+    LOW: { label: 'Low', color: 'bg-green-100 text-green-700 border-green-300', icon: '🟢' },
+    MEDIUM: { label: 'Medium', color: 'bg-yellow-100 text-yellow-700 border-yellow-300', icon: '🟡' },
+    HIGH: { label: 'High', color: 'bg-orange-100 text-orange-700 border-orange-300', icon: '🟠' },
+    URGENT: { label: 'Urgent', color: 'bg-red-100 text-red-700 border-red-300', icon: '🔴' },
   };
 
   if (error) {
