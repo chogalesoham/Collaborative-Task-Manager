@@ -23,6 +23,7 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'http://localhost:5174',
+    'https://collaborative-task-manager-six.vercel.app',
   ],
   credentials: true,
 }));

@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import Cookies from 'js-cookie';
 
 // Auth API Types
 export interface User {
@@ -37,7 +38,14 @@ export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-    credentials: 'include', // Important: Send cookies with requests
+    credentials: 'include',
+    prepareHeaders: (headers) => {
+      const token = Cookies.get('token');
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
   }),
   tagTypes: ['Auth'],
   endpoints: (builder) => ({

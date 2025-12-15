@@ -13,7 +13,7 @@ declare global {
 
 /**
  * Authentication middleware
- * Verifies JWT token from cookies and attaches userId to request
+ * Verifies JWT token from cookies or Authorization header and attaches userId to request
  */
 export const authMiddleware = async (
   req: Request,
@@ -21,8 +21,16 @@ export const authMiddleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Get token from cookies
-    const token = req.cookies?.token;
+    // Get token from cookies or Authorization header
+    let token = req.cookies?.token;
+    
+    // If no token in cookies, check Authorization header
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token) {
       throw new AppError('No token provided. Please login.', 401);
@@ -50,7 +58,16 @@ export const optionalAuthMiddleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const token = req.cookies?.token;
+    // Get token from cookies or Authorization header
+    let token = req.cookies?.token;
+    
+    // If no token in cookies, check Authorization header
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (token) {
       const decoded = authService.verifyToken(token);
