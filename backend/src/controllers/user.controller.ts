@@ -9,8 +9,6 @@ export class UserController {
   getAllUsers = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const users = await userRepository.findAll();
-      
-      // Return only necessary fields for dropdown
       const userList = users.map(user => ({
         id: user.id,
         name: user.name,

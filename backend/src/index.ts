@@ -15,16 +15,11 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// Initialize Socket.io
 initializeSocket(server);
 
-// Middleware
+// CORS must specify exact origin when credentials are enabled (not wildcard)
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    'http://localhost:5174',
-    'https://collaborative-task-manager-six.vercel.app',
-  ],
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
 }));
 app.use(express.json());
@@ -32,33 +27,25 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(logger);
 
-// Routes
-app.use('/', routes);
 
-// Error Handler (must be last)
+app.use('/', routes);
 app.use(errorHandler);
 
-// Start server
 server.listen(PORT, async () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`✅ Socket.io initialized`);
-  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Server Start at: ${PORT}`);
   
   try {
     await prisma.$connect();
-    console.log('✅ Database connected successfully');
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error('Database connection failed:', error);
     process.exit(1);
   }
 });
 
-// Graceful shutdown
+// Graceful shutdown: cleanup resources before process termination
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM signal received: closing HTTP server');
   await prisma.$disconnect();
   server.close(() => {
-    console.log('HTTP server closed');
     process.exit(0);
   });
 });

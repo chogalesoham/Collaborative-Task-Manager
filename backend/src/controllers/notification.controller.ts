@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { notificationRepository } from '../repositories/notification.repository.js';
 
-// AuthRequest extends Express Request which has userId from middleware
 interface AuthRequest extends Request {
   userId?: number;
 }

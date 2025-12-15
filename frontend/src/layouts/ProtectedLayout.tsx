@@ -13,8 +13,8 @@ export const ProtectedLayout: React.FC = () => {
   const dispatch = useAppDispatch();
   const [showPermissionPrompt, setShowPermissionPrompt] = React.useState(false);
 
-  // Check notification permission on mount
   React.useEffect(() => {
+    // Delay permission prompt to avoid disrupting initial page load
     if ('Notification' in window && Notification.permission === 'default') {
       const timer = setTimeout(() => setShowPermissionPrompt(true), 1000);
       return () => clearTimeout(timer);
@@ -35,9 +35,7 @@ export const ProtectedLayout: React.FC = () => {
             badge: '/vite.svg',
           });
           setTimeout(() => testNotification.close(), 3000);
-        } catch (err) {
-          // Silent fail
-        }
+        } catch (err) {}
       } else {
         setShowPermissionPrompt(false);
       }
@@ -46,18 +44,14 @@ export const ProtectedLayout: React.FC = () => {
     }
   };
 
-  // Function to play notification sound
   const playNotificationSound = () => {
     try {
       const audio = new Audio('/sound.wav');
       audio.volume = 0.5;
       audio.play().catch(() => {});
-    } catch (error) {
-      // Silent fail
-    }
+    } catch (error) {}
   };
 
-  // Function to show browser notification
   const showBrowserNotification = (title: string, body: string) => {
     playNotificationSound();
     
@@ -79,9 +73,7 @@ export const ProtectedLayout: React.FC = () => {
         };
         
         setTimeout(() => notification.close(), 8000);
-      } catch (error) {
-        // Silent fail
-      }
+      } catch (error) {}
     } else if (Notification.permission === 'default') {
       setShowPermissionPrompt(true);
     }
@@ -90,6 +82,7 @@ export const ProtectedLayout: React.FC = () => {
   useEffect(() => {
     const token = Cookies.get('token');
     
+    // Initialize WebSocket connection with JWT for real-time updates
     if (token) {
       const socket = initializeSocket(token);
 

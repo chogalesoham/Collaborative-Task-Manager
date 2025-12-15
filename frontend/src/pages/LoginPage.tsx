@@ -22,15 +22,12 @@ export const LoginPage: React.FC = () => {
     try {
       const result = await login({ email, password }).unwrap();
       
-      // Save token to cookies if provided in response
+      // Store token in cookie for 7 days (fallback for cross-origin scenarios)
       if (result.token) {
         Cookies.set('token', result.token, { expires: 7 });
       }
       
-      // Set user in Redux store
       dispatch(setUser(result.user));
-      
-      // Navigate to dashboard
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);

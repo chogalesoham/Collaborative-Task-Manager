@@ -1,10 +1,8 @@
 import { z } from 'zod';
 
-// Enums
 export const TaskStatus = z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED']);
 export const TaskPriority = z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
 
-// Create Task DTO
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
   description: z.string().optional(),
@@ -16,7 +14,6 @@ export const createTaskSchema = z.object({
 
 export type CreateTaskDto = z.infer<typeof createTaskSchema>;
 
-// Update Task DTO
 export const updateTaskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters').optional(),
   description: z.string().optional(),
@@ -28,7 +25,6 @@ export const updateTaskSchema = z.object({
 
 export type UpdateTaskDto = z.infer<typeof updateTaskSchema>;
 
-// Query Filters DTO
 export const taskFiltersSchema = z.object({
   status: TaskStatus.optional(),
   priority: TaskPriority.optional(),

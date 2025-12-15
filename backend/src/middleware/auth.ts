@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service.js';
 import { AppError } from './errorHandler.js';
 
-// Extend Express Request type to include userId
 declare global {
   namespace Express {
     interface Request {
@@ -21,10 +20,8 @@ export const authMiddleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Get token from cookies or Authorization header
+    // Support both cookie-based (same-origin) and header-based (cross-origin) authentication
     let token = req.cookies?.token;
-    
-    // If no token in cookies, check Authorization header
     if (!token) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -36,10 +33,7 @@ export const authMiddleware = async (
       throw new AppError('No token provided. Please login.', 401);
     }
 
-    // Verify token
     const decoded = authService.verifyToken(token);
-
-    // Attach user ID to request
     req.userId = decoded.userId;
 
     next();
@@ -58,10 +52,7 @@ export const optionalAuthMiddleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Get token from cookies or Authorization header
     let token = req.cookies?.token;
-    
-    // If no token in cookies, check Authorization header
     if (!token) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -76,7 +67,6 @@ export const optionalAuthMiddleware = async (
 
     next();
   } catch (error) {
-    // Continue without authentication
     next();
   }
 };

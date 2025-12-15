@@ -120,13 +120,12 @@ const EmptyState: React.FC<{ title: string; description: string }> = ({ title, d
 export const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { data: tasksResponse, isLoading, refetch } = useGetTasksQuery(undefined, {
-    pollingInterval: 30000, // Poll every 30 seconds as fallback
+    pollingInterval: 30000,
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   });
   const currentUser = useAppSelector((state) => state.auth.user);
 
-  // Set up real-time updates
   useEffect(() => {
     const socket = getSocket();
     
@@ -158,7 +157,6 @@ export const DashboardPage: React.FC = () => {
 
   const [isRealTimeUpdate, setIsRealTimeUpdate] = React.useState(false);
 
-  // Trigger visual feedback on data updates
   useEffect(() => {
     if (!isLoading && tasks.length > 0) {
       setIsRealTimeUpdate(true);
@@ -167,7 +165,6 @@ export const DashboardPage: React.FC = () => {
     }
   }, [tasks, isLoading]);
 
-  // Dynamic calculations based on current data
   const tasksAssignedToMe = React.useMemo(
     () => tasks.filter((task) => task.assigneeId === currentUser?.id),
     [tasks, currentUser?.id]

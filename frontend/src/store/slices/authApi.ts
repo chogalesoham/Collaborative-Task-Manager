@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import Cookies from 'js-cookie';
 
-// Auth API Types
 export interface User {
   id: number;
   email: string;
@@ -25,7 +24,7 @@ export interface AuthResponse {
   success: boolean;
   message?: string;
   user: User;
-  token?: string; // Token included for cross-origin authentication
+  token?: string;
 }
 
 export interface ErrorResponse {
@@ -34,11 +33,11 @@ export interface ErrorResponse {
   errors?: Array<{ field: string; message: string }>;
 }
 
-// Create auth API slice
 export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    // Include cookies for same-origin requests, also send Bearer token for cross-origin
     credentials: 'include',
     prepareHeaders: (headers) => {
       const token = Cookies.get('token');
@@ -50,7 +49,6 @@ export const authApi = createApi({
   }),
   tagTypes: ['Auth'],
   endpoints: (builder) => ({
-    // Register new user
     register: builder.mutation<AuthResponse, RegisterRequest>({
       query: (credentials) => ({
         url: '/api/v1/auth/register',
@@ -60,7 +58,6 @@ export const authApi = createApi({
       invalidatesTags: ['Auth'],
     }),
 
-    // Login user
     login: builder.mutation<AuthResponse, LoginRequest>({
       query: (credentials) => ({
         url: '/api/v1/auth/login',
@@ -70,13 +67,11 @@ export const authApi = createApi({
       invalidatesTags: ['Auth'],
     }),
 
-    // Get current user
     getMe: builder.query<AuthResponse, void>({
       query: () => '/api/v1/auth/me',
       providesTags: ['Auth'],
     }),
 
-    // Logout user
     logout: builder.mutation<{ success: boolean; message: string }, void>({
       query: () => ({
         url: '/api/v1/auth/logout',
@@ -85,7 +80,6 @@ export const authApi = createApi({
       invalidatesTags: ['Auth'],
     }),
 
-    // Update profile
     updateProfile: builder.mutation<
       AuthResponse,
       { name?: string; email?: string; currentPassword?: string; newPassword?: string }
@@ -100,7 +94,6 @@ export const authApi = createApi({
   }),
 });
 
-// Export hooks for usage in components
 export const {
   useRegisterMutation,
   useLoginMutation,

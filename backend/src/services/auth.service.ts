@@ -20,22 +20,19 @@ export class AuthService {
    * Register new user
    */
   async register(data: RegisterDto): Promise<{ user: UserResponse; token: string }> {
-    // Check if user already exists
     const existingUser = await userRepository.findByEmail(data.email);
     if (existingUser) {
       throw new AppError('User with this email already exists', 400);
     }
 
-    // Hash password
+    // Hash password with bcrypt before storage (never store plaintext)
     const hashedPassword = await bcrypt.hash(data.password, this.SALT_ROUNDS);
 
-    // Create user
     const user = await userRepository.create({
       ...data,
       password: hashedPassword,
     });
 
-    // Generate token
     const token = this.generateToken(user.id);
 
     return { user, token };
@@ -45,22 +42,18 @@ export class AuthService {
    * Login user
    */
   async login(data: LoginDto): Promise<{ user: UserResponse; token: string }> {
-    // Find user by email
     const user = await userRepository.findByEmail(data.email);
     if (!user) {
       throw new AppError('Invalid email or password', 401);
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
     if (!isPasswordValid) {
       throw new AppError('Invalid email or password', 401);
     }
 
-    // Generate JWT token
     const token = this.generateToken(user.id);
 
-    // Return user without password
     const { password, ...userWithoutPassword } = user;
 
     return { user: userWithoutPassword, token };
@@ -85,7 +78,6 @@ export class AuthService {
       throw new AppError('User not found', 404);
     }
 
-    // If updating email, check if it's already taken
     if (data.email && data.email !== user.email) {
       const emailExists = await userRepository.emailExists(data.email);
       if (emailExists) {
@@ -93,7 +85,6 @@ export class AuthService {
       }
     }
 
-    // If updating password, verify current password
     if (data.newPassword) {
       if (!data.currentPassword) {
         throw new AppError('Current password is required', 400);
@@ -104,7 +95,6 @@ export class AuthService {
       }
     }
 
-    // Prepare update data
     const updateData: any = {};
     if (data.name) updateData.name = data.name;
     if (data.email) updateData.email = data.email;
@@ -112,7 +102,6 @@ export class AuthService {
       updateData.password = await bcrypt.hash(data.newPassword, this.SALT_ROUNDS);
     }
 
-    // Update user
     const updatedUser = await userRepository.update(userId, updateData);
     return updatedUser;
   }

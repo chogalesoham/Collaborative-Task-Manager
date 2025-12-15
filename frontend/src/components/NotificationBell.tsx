@@ -16,16 +16,16 @@ export const NotificationBell = () => {
   const navigate = useNavigate();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  // Skip queries if not authenticated
+  // Poll notifications every 30s as fallback (WebSocket is primary mechanism)
   const { data: notificationsData, refetch, isLoading } = useGetNotificationsQuery(undefined, {
-    pollingInterval: 30000, // Poll every 30 seconds as fallback
+    pollingInterval: 30000,
     refetchOnMountOrArgChange: true,
-    skip: !isAuthenticated, // Skip if not authenticated
+    skip: !isAuthenticated,
   });
   const { data: unreadData, refetch: refetchCount } = useGetUnreadCountQuery(undefined, {
-    pollingInterval: 30000, // Poll every 30 seconds as fallback
+    pollingInterval: 30000,
     refetchOnMountOrArgChange: true,
-    skip: !isAuthenticated, // Skip if not authenticated
+    skip: !isAuthenticated,
   });
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead] = useMarkAllAsReadMutation();
@@ -34,7 +34,6 @@ export const NotificationBell = () => {
   const notifications = notificationsData?.data || [];
   const unreadCount = unreadData?.count || 0;
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -47,12 +46,11 @@ export const NotificationBell = () => {
   }, []);
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read
+    // Mark as read before navigation for better UX
     if (!notification.isRead) {
       await markAsRead(notification.id);
     }
 
-    // Navigate to task if taskId exists
     if (notification.taskId) {
       navigate(`/tasks/${notification.taskId}`);
       setIsOpen(false);

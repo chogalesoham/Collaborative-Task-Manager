@@ -11,13 +11,11 @@ export class AuthController {
    */
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Validate request body
       const validatedData = registerSchema.parse(req.body);
 
-      // Register user
       const { user, token } = await authService.register(validatedData);
 
-      // Set HTTP-only cookie
+      // Set HttpOnly cookie to prevent XSS attacks
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -41,13 +39,10 @@ export class AuthController {
    */
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Validate request body
       const validatedData = loginSchema.parse(req.body);
 
-      // Login user
       const { user, token } = await authService.login(validatedData);
 
-      // Set HTTP-only cookie
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -98,7 +93,6 @@ export class AuthController {
    */
   logout = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Clear the token cookie
       res.clearCookie('token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -126,10 +120,8 @@ export class AuthController {
         throw new AppError('Not authenticated', 401);
       }
 
-      // Validate request body
       const validatedData = updateProfileSchema.parse(req.body);
 
-      // Update profile
       const updatedUser = await authService.updateProfile(userId, validatedData);
 
       res.status(200).json({

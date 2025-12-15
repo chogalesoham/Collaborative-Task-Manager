@@ -13,7 +13,6 @@ export const Navbar: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   
-  // Use authenticated user data
   const displayUser = authUser;
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export const Navbar: React.FC = () => {
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      // Still navigate to login even if API call fails
       dispatch(clearUser());
       navigate('/login');
     }

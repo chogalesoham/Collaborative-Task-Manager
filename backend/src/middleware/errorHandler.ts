@@ -19,14 +19,12 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  // Log error for debugging
-  console.error('Error:', {
-    name: err.name,
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-  });
+  // Log errors in development only
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err.message);
+  }
 
-  // Handle Zod validation errors
+  // Handle validation errors first (most specific)
   if (err instanceof ZodError) {
     res.status(400).json({
       success: false,

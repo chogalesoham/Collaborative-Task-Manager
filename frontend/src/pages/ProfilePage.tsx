@@ -38,7 +38,7 @@ export const ProfilePage: React.FC = () => {
     }
   }, [authUser]);
 
-  // Calculate real statistics
+  // Calculate user statistics from live task data
   const tasks = tasksResponse?.data || [];
   const tasksAssignedToMe = tasks.filter((task) => task.assigneeId === authUser?.id).length;
   const tasksCreatedByMe = tasks.filter((task) => task.creatorId === authUser?.id).length;

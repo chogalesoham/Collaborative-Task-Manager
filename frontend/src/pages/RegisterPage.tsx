@@ -23,15 +23,11 @@ export const RegisterPage: React.FC = () => {
     try {
       const result = await register({ name, email, password }).unwrap();
       
-      // Save token to cookies if provided in response
       if (result.token) {
         Cookies.set('token', result.token, { expires: 7 });
       }
       
-      // Set user in Redux store
       dispatch(setUser(result.user));
-      
-      // Navigate to dashboard
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Registration error:', err);

@@ -28,7 +28,7 @@ export const EditTaskPage: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Populate form when task loads
+  // Hydrate form with existing task data once loaded
   useEffect(() => {
     if (task) {
       setFormData({
@@ -46,7 +46,6 @@ export const EditTaskPage: React.FC = () => {
     e.preventDefault();
     setErrors({});
 
-    // Basic validation
     if (formData.title && !formData.title.trim()) {
       setErrors({ title: 'Title cannot be empty' });
       return;
@@ -62,7 +61,6 @@ export const EditTaskPage: React.FC = () => {
       navigate('/tasks');
     } catch (err: any) {
       if (err?.data?.errors) {
-        // Zod validation errors from backend
         const backendErrors: Record<string, string> = {};
         err.data.errors.forEach((error: any) => {
           backendErrors[error.path[0]] = error.message;
@@ -82,7 +80,6 @@ export const EditTaskPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };

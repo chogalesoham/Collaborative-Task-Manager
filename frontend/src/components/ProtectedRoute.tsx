@@ -16,6 +16,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { data, isLoading, error } = useGetMeQuery();
 
   useEffect(() => {
+    // Hydrate user state from server authentication check
     if (data?.user) {
       dispatch(setUser(data.user));
     } else if (error) {
@@ -27,7 +28,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
   }, [data, error, isLoading, dispatch]);
 
-  // Show loading spinner while checking authentication
   if (isLoading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -58,7 +58,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Redirect to login if not authenticated
+  // Preserve location to redirect back after login
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

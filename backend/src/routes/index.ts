@@ -6,7 +6,6 @@ import notificationRoutes from './notification.routes.js';
 
 const router = Router();
 
-// API v1 routes
 router.use('/api/v1/auth', authRoutes);
 router.use('/api/v1/tasks', taskRoutes);
 router.use('/api/v1/users', userRoutes);

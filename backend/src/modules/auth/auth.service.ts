@@ -8,18 +8,14 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const SALT_ROUNDS = 10;
 
 export class AuthService {
-  // Register new user
   async register(data: RegisterDto): Promise<AuthResponse> {
-    // Check if user already exists
     const existingUser = await authRepository.findUserByEmail(data.email);
     if (existingUser) {
       throw new Error('User with this email already exists');
     }
 
-    // Hash password
+    // Hash password with bcrypt before storage (never store plaintext)
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
-
-    // Create user
     const user = await authRepository.createUser({
       ...data,
       password: hashedPassword,
@@ -31,24 +27,19 @@ export class AuthService {
     };
   }
 
-  // Login user
   async login(data: LoginDto): Promise<{ user: UserResponse; token: string }> {
-    // Find user by email
     const user = await authRepository.findUserByEmail(data.email);
     if (!user) {
       throw new Error('Invalid email or password');
     }
 
-    // Verify password
+    // Use constant-time comparison to prevent timing attacks
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
     if (!isPasswordValid) {
       throw new Error('Invalid email or password');
     }
 
-    // Generate JWT token
     const token = this.generateToken(user.id);
-
-    // Return user without password
     const { password, ...userWithoutPassword } = user;
 
     return {
@@ -57,12 +48,10 @@ export class AuthService {
     };
   }
 
-  // Get user by ID
   async getUserById(userId: number): Promise<UserResponse | null> {
     return await authRepository.findUserById(userId);
   }
 
-  // Update user profile
   async updateProfile(
     userId: number,
     data: { name?: string; email?: string; currentPassword?: string; newPassword?: string }
@@ -75,7 +64,6 @@ export class AuthService {
       throw new Error('User not found');
     }
 
-    // If updating email, check if it's already taken
     if (data.email && data.email !== user.email) {
       const emailExists = await authRepository.emailExists(data.email);
       if (emailExists) {
@@ -83,7 +71,6 @@ export class AuthService {
       }
     }
 
-    // If updating password, verify current password
     if (data.newPassword) {
       if (!data.currentPassword) {
         throw new Error('Current password is required');
@@ -94,7 +81,6 @@ export class AuthService {
       }
     }
 
-    // Prepare update data
     const updateData: any = {};
     if (data.name) updateData.name = data.name;
     if (data.email) updateData.email = data.email;
@@ -102,7 +88,6 @@ export class AuthService {
       updateData.password = await bcrypt.hash(data.newPassword, SALT_ROUNDS);
     }
 
-    // Update user
     const updatedUser = await authRepository.updateUser(userId, updateData);
     if (!updatedUser) {
       throw new Error('Failed to update profile');
@@ -111,14 +96,12 @@ export class AuthService {
     return updatedUser;
   }
 
-  // Generate JWT token
   generateToken(userId: number): string {
     return jwt.sign({ userId }, JWT_SECRET as string, {
       expiresIn: JWT_EXPIRES_IN as string,
     } as jwt.SignOptions);
   }
 
-  // Verify JWT token
   verifyToken(token: string): { userId: number } {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };

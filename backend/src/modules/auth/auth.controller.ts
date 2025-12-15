@@ -5,31 +5,24 @@ import { updateProfileSchema } from './profile.dto.js';
 import { z } from 'zod';
 
 export class AuthController {
-  // POST /api/v1/auth/register
   async register(req: Request, res: Response): Promise<void> {
     try {
-      // Validate request body
       const validatedData = registerSchema.parse(req.body);
-
-      // Register user
       const result = await authService.register(validatedData);
-
-      // Generate token
       const token = authService.generateToken(result.user.id);
 
-      // Set HTTP-only cookie (for same-origin)
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       res.status(201).json({
         success: true,
         message: result.message,
         user: result.user,
-        token, // Include token in response for cross-origin
+        token,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -59,28 +52,23 @@ export class AuthController {
     }
   }
 
-  // POST /api/v1/auth/login
   async login(req: Request, res: Response): Promise<void> {
     try {
-      // Validate request body
       const validatedData = loginSchema.parse(req.body);
-
-      // Login user
       const result = await authService.login(validatedData);
 
-      // Set HTTP-only cookie (for same-origin)
       res.cookie('token', result.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       res.status(200).json({
         success: true,
         message: 'Login successful',
         user: result.user,
-        token: result.token, // Include token in response for cross-origin
+        token: result.token,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -110,10 +98,8 @@ export class AuthController {
     }
   }
 
-  // GET /api/v1/auth/me
   async me(req: Request, res: Response): Promise<void> {
     try {
-      // User is already attached to req by auth middleware
       const userId = (req as any).userId;
 
       if (!userId) {
@@ -146,10 +132,8 @@ export class AuthController {
     }
   }
 
-  // POST /api/v1/auth/logout
   async logout(_req: Request, res: Response): Promise<void> {
     try {
-      // Clear the token cookie
       res.clearCookie('token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -168,7 +152,6 @@ export class AuthController {
     }
   }
 
-  // PUT /api/v1/auth/profile
   async updateProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).userId;
@@ -181,10 +164,7 @@ export class AuthController {
         return;
       }
 
-      // Validate request body
       const validatedData = updateProfileSchema.parse(req.body);
-
-      // Update profile
       const updatedUser = await authService.updateProfile(userId, validatedData);
 
       res.status(200).json({

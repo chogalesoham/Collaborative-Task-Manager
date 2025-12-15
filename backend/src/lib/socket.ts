@@ -39,6 +39,7 @@ export const initializeSocket = (server: HTTPServer) => {
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
+    // Join user-specific room for targeted notifications
     if (socket.userId) {
       socket.join(`user:${socket.userId}`);
     }

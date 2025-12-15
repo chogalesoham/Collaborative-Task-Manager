@@ -41,7 +41,6 @@ export class AuthRepository {
     });
   }
 
-  // Check if email exists
   async emailExists(email: string): Promise<boolean> {
     const user = await prisma.user.findUnique({
       where: { email },
@@ -50,7 +49,6 @@ export class AuthRepository {
     return !!user;
   }
 
-  // Update user
   async updateUser(userId: number, data: { name?: string; email?: string; password?: string }) {
     return await prisma.user.update({
       where: { id: userId },

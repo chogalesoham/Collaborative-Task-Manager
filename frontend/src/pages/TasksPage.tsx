@@ -26,7 +26,6 @@ export const TasksPage: React.FC = () => {
 
   const tasks = data?.data || [];
 
-  // Filter tasks by search query
   const filteredTasks = React.useMemo(() => {
     if (!searchQuery.trim()) return tasks;
     const query = searchQuery.toLowerCase();

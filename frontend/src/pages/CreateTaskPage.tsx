@@ -25,7 +25,6 @@ export const CreateTaskPage: React.FC = () => {
     e.preventDefault();
     setErrors({});
 
-    // Basic validation
     if (!formData.title.trim()) {
       setErrors({ title: 'Title is required' });
       return;
@@ -40,8 +39,8 @@ export const CreateTaskPage: React.FC = () => {
       await createTask(formData).unwrap();
       navigate('/tasks');
     } catch (err: any) {
+      // Map Zod validation errors from backend to form field errors
       if (err?.data?.errors) {
-        // Zod validation errors from backend
         const backendErrors: Record<string, string> = {};
         err.data.errors.forEach((error: any) => {
           backendErrors[error.path[0]] = error.message;
@@ -61,7 +60,6 @@ export const CreateTaskPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };

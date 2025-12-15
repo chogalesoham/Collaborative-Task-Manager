@@ -35,7 +35,6 @@ export class TaskService {
    * Create new task
    */
   async createTask(data: CreateTaskDto, creatorId: number): Promise<TaskWithRelations> {
-    // Validate assignee exists if provided
     if (data.assigneeId) {
       const { userRepository } = await import('../repositories/user.repository.js');
       const assignee = await userRepository.findById(data.assigneeId);
@@ -46,10 +45,9 @@ export class TaskService {
 
     const task = await taskRepository.create(data as any, creatorId);
 
-    // Emit real-time event
     emitTaskCreated(task);
 
-    // Create notification if task is assigned
+    // Only notify assignee if different from creator (avoid self-notification)
     if (task.assigneeId && task.assigneeId !== creatorId) {
       const notification = await notificationRepository.create({
         type: NotificationType.TASK_ASSIGNED,
@@ -58,10 +56,8 @@ export class TaskService {
         userId: task.assigneeId,
       });
 
-      // Emit assignment event
       emitTaskAssigned(task.assigneeId, task);
       
-      // Emit notification event
       emitNewNotification(task.assigneeId, notification);
     }
 
@@ -78,13 +74,12 @@ export class TaskService {
       throw new AppError('Task not found', 404);
     }
 
-    // Check permissions: only creator or assignee can update
+    // Business rule: only task creator or assignee can modify
     const canModify = await taskRepository.canUserModify(id, userId);
     if (!canModify) {
       throw new AppError('You do not have permission to update this task', 403);
     }
 
-    // Validate new assignee if provided
     if (data.assigneeId !== undefined && data.assigneeId !== null) {
       const { userRepository } = await import('../repositories/user.repository.js');
       const assignee = await userRepository.findById(data.assigneeId);
@@ -96,9 +91,8 @@ export class TaskService {
     const oldAssigneeId = task.assigneeId;
     const updatedTask = await taskRepository.update(id, data as any);
 
-    // Handle assignment changes
+    // Handle assignment changes: notify new/old assignees and track reassignment
     if (data.assigneeId !== undefined && data.assigneeId !== oldAssigneeId) {
-      // Reassignment occurred
       if (data.assigneeId) {
         // Create notification for new assignee (if not the updater)
         if (data.assigneeId !== userId) {
@@ -116,7 +110,6 @@ export class TaskService {
         // Emit reassignment event
         emitTaskReassigned(oldAssigneeId, data.assigneeId, updatedTask);
       } else if (oldAssigneeId) {
-        // Task unassigned
         const notification = await notificationRepository.create({
           type: NotificationType.TASK_UNASSIGNED,
           message: `You have been unassigned from task: "${updatedTask.title}"`,
@@ -124,15 +117,13 @@ export class TaskService {
           userId: oldAssigneeId,
         });
         
-        // Emit notification event
         emitNewNotification(oldAssigneeId, notification);
       }
     } else {
-      // Regular update (no assignment change)
       emitTaskUpdated(updatedTask);
     }
 
-    // Notify about task completion
+    // Notify creator when task is marked complete (if not self-completed)
     if (data.status === 'COMPLETED' && task.status !== 'COMPLETED') {
       if (task.creatorId !== userId) {
         const notification = await notificationRepository.create({
@@ -142,7 +133,6 @@ export class TaskService {
           userId: task.creatorId,
         });
         
-        // Emit notification event
         emitNewNotification(task.creatorId, notification);
       }
     }
@@ -160,14 +150,12 @@ export class TaskService {
       throw new AppError('Task not found', 404);
     }
 
-    // Only creator can delete
     if (task.creatorId !== userId) {
       throw new AppError('Only the task creator can delete this task', 403);
     }
 
     await taskRepository.delete(id);
 
-    // Emit delete event
     emitTaskDeleted(id);
   }
 }
