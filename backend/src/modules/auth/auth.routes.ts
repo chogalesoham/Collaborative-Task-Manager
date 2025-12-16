@@ -1,14 +1,14 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authController } from './auth.controller.js';
 import { authMiddleware } from '../../middleware/auth.js';
 
 const router = Router();
 
-router.post('/register', (req, res) => authController.register(req, res));
-router.post('/login', (req, res) => authController.login(req, res));
-router.post('/logout', (req, res) => authController.logout(req, res));
+router.post('/register', (req: Request, res: Response) => authController.register(req, res));
+router.post('/login', (req: Request, res: Response) => authController.login(req, res));
+router.post('/logout', (req: Request, res: Response) => authController.logout(req, res));
 
-router.get('/me', authMiddleware, (req, res) => authController.me(req, res));
-router.put('/profile', authMiddleware, (req, res) => authController.updateProfile(req, res));
+router.get('/me', authMiddleware, (req: Request, res: Response) => authController.me(req, res));
+router.put('/profile', authMiddleware, (req: Request, res: Response) => authController.updateProfile(req, res));
 
 export default router;

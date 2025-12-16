@@ -3,6 +3,7 @@ import { notificationRepository } from '../repositories/notification.repository.
 
 interface AuthRequest extends Request {
   userId?: number;
+  params: any;
 }
 
 export class NotificationController {
