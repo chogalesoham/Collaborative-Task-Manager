@@ -60,7 +60,7 @@ export interface User {
 export const tasksApi = createApi({
   reducerPath: 'tasksApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    baseUrl: import.meta.env.VITE_API_URL ,
     credentials: 'include',
     prepareHeaders: (headers) => {
       const token = Cookies.get('token');

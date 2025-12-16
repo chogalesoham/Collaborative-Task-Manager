@@ -14,7 +14,7 @@ export interface Notification {
 export const notificationsApi = createApi({
   reducerPath: 'notificationsApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    baseUrl: import.meta.env.VITE_API_URL ,
     credentials: 'include',
     prepareHeaders: (headers) => {
       const token = Cookies.get('token');

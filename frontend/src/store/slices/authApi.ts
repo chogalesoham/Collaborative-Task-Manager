@@ -36,7 +36,7 @@ export interface ErrorResponse {
 export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    baseUrl: import.meta.env.VITE_API_URL,
     // Include cookies for same-origin requests, also send Bearer token for cross-origin
     credentials: 'include',
     prepareHeaders: (headers) => {
